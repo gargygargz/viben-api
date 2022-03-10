@@ -1,17 +1,13 @@
-const path = require('path')
 const multer = require('multer')
 
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, '../uploads')
+  destination: function (req, file, cb) {
+    cb(null, 'uploads')
   },
-  filename: (req, file, cb) => {
-    cb(
-      null,
-      file.fieldname + '-' + Date.now() + path.extname(file.originalname)
-    )
-    console.log('Image saved.')
+  filename: function (req, file, cb) {
+    console.log(file)
+    cb(null, file.originalname)
   }
 })
 
-module.exports = multer({ storage: storage })
+module.exports = multer({ storage: storage, limits: { fieldSize: 10 * 1024 * 1024 } })
