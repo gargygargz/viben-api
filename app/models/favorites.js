@@ -7,6 +7,7 @@ const mongoose = require('mongoose')
 const favoritesSchema = new mongoose.Schema(
   {
     type: Boolean,
+    default: false,
     required: false,
     owner: {
       // the type to use for a one-to-many reference

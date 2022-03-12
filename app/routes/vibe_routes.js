@@ -6,7 +6,7 @@ const passport = require('passport')
 // pull in Mongoose model for vibes
 const Vibe = require('../models/vibe')
 const Likes = require('../models/likes')
-const Favorites = require('../models/favorites')
+// const Favorites = require('../models/favorites')
 
 // this is a collection of methods that help us detect situations when we need
 // to throw a custom error
@@ -34,14 +34,13 @@ const router = express.Router()
 router.post('/vibes', requireToken, (req, res, next) => {
   // set owner of new vibe to be current user
   req.body.vibe.owner = req.user.id
-
   Vibe.create(req.body.vibe)
     // respond to successful `create` with status 201 and JSON of new "vibe"
     .then(vibe => {
       res.status(201).json({ vibe: vibe.toObject() })
     })
     // if an error occurs, pass it off to our error handler
-    // the error handler needs t,he error message and the `res` object so that it
+    // the error handler needs the error message and the `res` object so that it
     // can send an error message back to the client
     .catch(next)
 })
@@ -76,7 +75,6 @@ router.get('/vibes/all', requireToken, (req, res, next) => {
     //   }
     // })
     .then((vibes) => {
-      console.log(vibes)
       // `vibes` will be an array of Mongoose documents
       // we want to convert each one to a POJO, so we use `.map` to
       // apply `.toObject` to each one
@@ -91,7 +89,7 @@ router.get('/vibes/all', requireToken, (req, res, next) => {
 // INDEX (favorites one user)
 // GET /vibes/favorites
 router.get('/vibes/favorites', requireToken, (req, res, next) => {
-  Vibe.find() // we added for users to only see what they created
+  Vibe.find({ owner: req.user._id }) // we added for users to only see what they created
     .populate('owner')
     .then((vibes) => {
       // `vibes` will be an array of Mongoose documents
@@ -124,14 +122,12 @@ router.patch('/vibes/:id', requireToken, removeBlanks, (req, res, next) => {
   // if the client attempts to change the `owner` property by including a new
   // owner, prevent that by deleting that key/value pair
   delete req.body.vibe.owner
-
   Vibe.findById(req.params.id)
     .then(handle404)
     .then((vibe) => {
       // pass the `req` object and the Mongoose record to `requireOwnership`
       // it will throw an error if the current user isn't the owner
       requireOwnership(req, vibe)
-
       // pass the result of Mongoose's `.update` to the next `.then`
       return vibe.updateOne(req.body.vibe)
     })
@@ -141,65 +137,75 @@ router.patch('/vibes/:id', requireToken, removeBlanks, (req, res, next) => {
     .catch(next)
 })
 
-// UPDATE Like Button
-// PATCH /vibes/5a7db6c74d55bc51bdf39793
+// UPDATE Likes
+// PATCH /vibes/likes/5a7db6c74d55bc51bdf39793
 router.patch('/vibes/likes/:id', requireToken, removeBlanks, (req, res, next) => {
-  // if the client attempts to change the `owner` property by including a new
-  // owner, prevent that by deleting that key/value pair
-  // delete req.body.vibe.owner
-
   Vibe.findById(req.params.id)
     .then(handle404)
     .then((vibe) => {
-      console.log(vibe)
-      // pass the `req` object and the Mongoose record to `requireOwnership`
-      // it will throw an error if the current user isn't the owner
-      // requireOwnership(req, vibe)
-
       // pass the result of Mongoose's `.update` to the next `.then`
-      Likes.create(req.body.like).then(like => {
-        vibe.likes.push(like.id)
-        return vibe.save()
-      })
+      Likes.create(req.body.like)
+        .then((like) => {
+          vibe.likes.push(like.id)
+          return vibe.save()
+        })
+      // if that succeeded, return 204 and no JSON
         .then(() => res.sendStatus(204))
-      // vibe.updateOne(req.body.vibe)
+      // if an error occurs, pass it to the handler
         .catch(next)
     })
-  // if that succeeded, return 204 and no JSON
-  // if an error occurs, pass it to the handler
 })
 
-// UPDATE Favorites Button
-// PATCH /vibes/5a7db6c74d55bc51bdf39793
-router.patch('/vibes/favorites/:id', requireToken, removeBlanks, (req, res, next) => {
+// UPDATE Favorites (user's own vibes only)
+// PATCH /vibes/favorited/5a7db6c74d55bc51bdf39793
+router.patch('/vibes/favorited/:id', requireToken, removeBlanks, (req, res, next) => {
   // if the client attempts to change the `owner` property by including a new
   // owner, prevent that by deleting that key/value pair
   // delete req.body.vibe.owner
-
   Vibe.findById(req.params.id)
+    .populate('owner')
     .then(handle404)
     .then((vibe) => {
-      console.log(vibe)
-      // pass the `req` object and the Mongoose record to `requireOwnership`
-      // it will throw an error if the current user isn't the owner
-      // requireOwnership(req, vibe)
-
+      requireOwnership(req, vibe)
       // pass the result of Mongoose's `.update` to the next `.then`
-      Favorites.create(req.body.favorite).then(favorite => {
-        vibe.favorited.push(favorite.id)
-        return vibe.save()
-      })
-        .then(() => res.sendStatus(204))
-      // vibe.updateOne(req.body.vibe)
-        .catch(next)
+      return (
+        vibe
+          .updateOne(req.body.vibe)
+        // if that succeeded, return 204 and no JSON
+          .then(() => res.sendStatus(204))
+        // if an error occurs, pass it to the handler
+          .catch(next)
+      )
     })
-  // if that succeeded, return 204 and no JSON
-  // if an error occurs, pass it to the handler
 })
 
-// // UPDATE Like Button v2 with Likes model
-// // PATCH /vibes/5a7db6c74d55bc51bdf39793
-// router.patch('/vibes/:id', requireToken, removeBlanks, (req, res, next) => {
+// // UPDATE Favorites (any vibe any user)
+// // PATCH /vibes/favorited/5a7db6c74d55bc51bdf39793
+// router.patch('/vibes/favorited/:id', requireToken, removeBlanks, (req, res, next) => {
+//   // if the client attempts to change the `owner` property by including a new
+//   // owner, prevent that by deleting that key/value pair
+//   // delete req.body.vibe.owner
+
+//   Vibe.findById(req.params.id)
+//     .populate('owner')
+//     .then(handle404)
+//     .then((vibe) => {
+//       req.body.vibe.favorited.owner = req.user.id
+
+//       Favorites.create(req.body.favorite).then(favorite => {
+//         vibe.favorited.push(favorite.id)
+//         console.log(favorite)
+//         console.log(vibe)
+//         return vibe.save()
+//       })
+//         .then(() => res.sendStatus(204))
+//         .catch(next)
+//     })
+// })
+
+// // UPDATE Likes (one-to-one)
+// // PATCH /vibes/likes/5a7db6c74d55bc51bdf39793
+// router.patch('/vibes/likes/:id', requireToken, removeBlanks, (req, res, next) => {
 //   // if the client attempts to change the `owner` property by including a new
 //   // owner, prevent that by deleting that key/value pair
 //   // delete req.body.vibe.owner

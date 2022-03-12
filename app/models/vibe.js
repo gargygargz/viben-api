@@ -4,7 +4,6 @@ const mongoose = require('mongoose')
 const vibeSchema = new mongoose.Schema(
   {
     img: {
-      // data: Buffer,
       type: String,
       required: true
     },
@@ -20,27 +19,18 @@ const vibeSchema = new mongoose.Schema(
       type: String,
       required: false
     },
-    // liked: {
-    //   type: Boolean,
-    //   default: false
-    // },
-    // likes: {
-    //   type: Number,
-    //   default: 0,
-    //   max: 100
-    // },
     likes: [{
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Likes'
     }],
-    // favorited: {
-    //   type: Boolean,
-    //   default: false
-    // },
-    favorited: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Favorites'
-    }],
+    favorited: {
+      type: Boolean,
+      default: false
+    },
+    // favorited: [{
+    //   type: mongoose.Schema.Types.ObjectId,
+    //   ref: 'Favorites'
+    // }],
     owner: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

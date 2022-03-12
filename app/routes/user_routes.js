@@ -5,10 +5,8 @@ const crypto = require('crypto')
 const passport = require('passport')
 // bcrypt docs: https://github.com/kelektiv/node.bcrypt.js
 const bcrypt = require('bcrypt')
-
 // see above for explanation of "salting", 10 rounds is recommended
 const bcryptSaltRounds = 10
-
 // pull in error types and the logic to handle them and set status codes
 const errors = require('../../lib/custom_errors')
 
@@ -63,7 +61,6 @@ router.post('/sign-up', (req, res, next) => {
 router.post('/sign-in', (req, res, next) => {
   const pw = req.body.credentials.password
   let user
-
   // find a user based on the email that was passed
   User.findOne({ email: req.body.credentials.email })
     .then(record => {
